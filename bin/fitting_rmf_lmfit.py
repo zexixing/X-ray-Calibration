@@ -4,6 +4,7 @@ import _mypath
 import os
 import numpy as np
 import pylab as pl
+import pandas as pd
 from lib.rmf_model_peak_app import double_integ, response_rmf
 from lmfit import minimize, Parameters, report_fit
 from scipy.interpolate import interp1d
@@ -99,33 +100,58 @@ def rmf_model(params, E, S_E):
 def rmf_error(params, E, E_h, S_E, eps_data):
     return (rmf_model(params, E, S_E) - E_h)/eps_data
 
-def spec_fitting(E, E_h, S_E, eps_data):
+def spec_fitting(E, E_h, S_E, eps_data, init_v):
+    col = ['flag', 'read_n', 'l', 't', 'f0_Ein',
+           'N_ph_Ein', 'N_sh_Ein', 'N_esc_Ein', 'N_flo_Ein']
+    df = pd.DataFrame(init_v, index = init_v.T[0], columns = col)    
     params = Parameters()
-    params.add('read_n', value = 25., min = 0.0, max = 50.0) 
-    params.add('l', value = 2.e-05, min = 0.0, max = 1.0E-03) 
-    params.add('delta', value = 8.e-03, min = 0.0, max = 0.1) 
-    params.add('t', expr = 'l + delta')
     d = int(len(np.array(S_E).flatten())/3.)
     if d == 1:
+        flag_v = int(S_E[2])
         flag = str(int(S_E[2]))
-        params.add('f0_Ein_'+flag, value = 0.85, min = 0.0, max = 1.0)
-        params.add('N_ph_Ein_'+flag, value = 500., min = 0.0, max = 5000000.)
-        params.add('N_sh_Ein_'+flag, value = 5.E-03, min = 0.0, max = 10000.)
+        init_read_n = float(df.loc[flag_v, 'read_n'])
+        init_l = float(df.loc[flag_v, 'l'])
+        init_delta = float(df.loc[flag_v, 'delta'])
+        init_f0_Ein = float(df.loc[flag_v, 'f0_Ein'])
+        init_N_ph_Ein = float(df.loc[flag_v, 'N_ph_Ein'])
+        init_N_sh_Ein = float(df.loc[flag_v, 'N_sh_Ein'])
+        params.add('read_n', value = init_read_n, min = 0.0, max = 50.0)
+        params.add('l', value = init_l, min = 0.0, max = 1.0E-03)
+        params.add('delta', value = init_delta, min = 0.0, max = 0.1)
+        params.add('t', expr = 'l + delta')
+        params.add('f0_Ein_'+flag, value = init_f0_Ein, min = 0.0, max = 1.0)
+        params.add('N_ph_Ein_'+flag, value = init_N_ph_Ein, min = 0.0, max = 5000000.)
+        params.add('N_sh_Ein_'+flag, value = init_N_sh_Ein, min = 0.0, max = 10000.)
         if S_E[0]>1.839:
-            params.add('N_esc_Ein_'+flag, value = 50., min = 0., max = 3000000.)
-            params.add('N_flo_Ein_'+flag, value = 50., min = 0., max = 5000000.)
+            init_N_esc_Ein = float(df.loc[flag_v, 'N_esc_Ein'])
+            init_N_flo_Ein = float(df.loc[flag_v, 'N_flo_Ein'])
+            params.add('N_esc_Ein_'+flag, value = init_N_esc_Ein, min = 0., max = 3000000.)
+            params.add('N_flo_Ein_'+flag, value = init_N_flo_Ein, min = 0., max = 5000000.)
         else:
             params.add('N_esc_Ein_'+flag, value = 0., vary = False)
             params.add('N_flo_Ein_'+flag, value = 0., vary = False)
     else:
         for i in range(0, d):
+            flag_v = int(S_E[i][2])
             flag = str(int(S_E[i][2]))
-            params.add('f0_Ein_'+flag, value = 0.85, min = 0.0, max = 1.0)
-            params.add('N_ph_Ein_'+flag, value = 500., min = 0.0, max = 5000000.)
-            params.add('N_sh_Ein_'+flag, value = 5.E-03, min = 0.0, max = 10000.)
+            init_read_n = float(df.loc[flag_v, 'read_n'])
+            init_l = float(df.loc[flag_v, 'l'])
+            init_delta = float(df.loc[flag_v, 'delta'])
+            init_f0_Ein = float(df.loc[flag_v, 'f0_Ein'])
+            init_N_ph_Ein = float(df.loc[flag_v, 'N_ph_Ein'])
+            init_N_sh_Ein = float(df.loc[flag_v, 'N_sh_Ein'])
+            params.add('read_n', value = init_read_n, min = 0.0, max = 50.0)
+            params.add('l', value = init_l, min = 0.0, max = 1.0E-03)
+            params.add('delta', value = init_delta, min = 0.0, max = 0.1)
+            params.add('t', expr = 'l + delta')
+            params.add('f0_Ein_'+flag, value = init_f0_Ein, min = 0.0, max = 1.0)
+            params.add('N_ph_Ein_'+flag, value = init_N_ph_Ein, min = 0.0, max = 5000000.)
+            params.add('N_sh_Ein_'+flag, value = init_N_sh_Ein, min = 0.0, max = 10000.)
             if S_E[i][0]>1.839:
-                params.add('N_esc_Ein_'+flag, value = 50., min = 0., max = 3000000.)
-                params.add('N_flo_Ein_'+flag, value = 50., min = 0., max = 5000000.)
+                init_N_esc_Ein = float(df.loc[flag_v, 'N_esc_Ein'])
+                init_N_flo_Ein = float(df.loc[flag_v, 'N_flo_Ein'])
+                params.add('N_esc_Ein_'+flag, value = init_N_esc_Ein, min = 0., max = 3000000.)
+                params.add('N_flo_Ein_'+flag, value = init_N_flo_Ein, min = 0., max = 5000000.)
             else:
                 params.add('N_esc_Ein_'+flag, value = 0., vary = False)
                 params.add('N_flo_Ein_'+flag, value = 0., vary = False)
@@ -134,43 +160,47 @@ def spec_fitting(E, E_h, S_E, eps_data):
     return result
 
 
+def exec_fitting():
+    #fitting
+    data_to_thisdir_path = '../docs/casa/'
+    input_file = 'spec_input_all'
+    output_file = 'spec_output_all'
+    para_file = 'para_init'
+    arf_name = 'ea.txt'
+    input_file = arf_S_E(arf_name, input_file) # considering arf
+    input_path = os.path.join(thisdir, data_to_thisdir_path, input_file)
+    output_path = os.path.join(thisdir, data_to_thisdir_path, output_file)
+    para_path = os.path.join(thisdir, data_to_thisdir_path, para_file)
+    S_E = np.loadtxt(input_path)
+    para = np.loadtxt(para_path)
+    inp = np.loadtxt(output_path).T[0]
+    outp = np.loadtxt(output_path).T[1]
+    error = np.loadtxt(output_path).T[2]
+    result = spec_fitting(inp, outp, S_E, error, para)
+    params = dict(result.params.valuesdict())
+    print report_fit(result)
+    print N
 
-data_to_thisdir_path = '../docs/casa/'
-input_file = 'spec_input_all'
-output_file = 'spec_output_all'
-arf_name = 'ea.txt'
+    #plot
+    x = np.arange(0., 5., 0.005)
+    delta = S_E[1][0] - S_E[0][0]
+    y = rmf_model(params, x, S_E)
+    fig = pl.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    pl.plot(inp, outp, 'ko', MarkerSize=1)
+    ax.set_xscale('linear')
+    ax.set_yscale('linear')
+    pl.xlabel('keV')
+    pl.ylabel('counts s-1 kev-1')
+    #pl.xlim(min(inp), max(inp))
+    #pl.ylim(0.5*min(outp), 2.*max(outp))
+    pl.errorbar(inp, outp, yerr=[error,error],
+                fmt='ko', MarkerSize=1, alpha = 0.3)
+    pl.plot(x, y, 'b-')
+    pl.title('fitting result of casA spectra (considering ARF)')
+    save_name = 'arf_specline_all.png'
+    save_path = os.path.join(thisdir, data_to_thisdir_path, save_name)
+    pl.savefig(save_path)
+    pl.show()
 
-input_file = arf_S_E(arf_name, input_file)
-input_path = os.path.join(thisdir, data_to_thisdir_path, input_file)
-output_path = os.path.join(thisdir, data_to_thisdir_path, output_file)
-S_E = np.loadtxt(input_path)
-inp = np.loadtxt(output_path).T[0]
-outp = np.loadtxt(output_path).T[1]
-error = np.loadtxt(output_path).T[2]
-result = spec_fitting(inp, outp, S_E, error)
-params = dict(result.params.valuesdict())
-print report_fit(result)
-print N
-
-x = np.arange(0., 5., 0.005)
-#x = np.arange(min(inp), max(inp), 0.005)
-delta = S_E[1][0] - S_E[0][0]
-y = rmf_model(params, x, S_E)
-
-fig = pl.figure()
-ax = fig.add_subplot(1, 1, 1)
-pl.plot(inp, outp, 'ko', MarkerSize=1)
-ax.set_xscale('linear')
-ax.set_yscale('linear')
-pl.xlabel('keV')
-pl.ylabel('counts s-1 kev-1')
-#pl.xlim(min(inp), max(inp))
-#pl.ylim(0.5*min(outp), 2.*max(outp))
-pl.errorbar(inp, outp, yerr=[error,error],
-            fmt='ko', MarkerSize=1, alpha = 0.3)
-pl.plot(x, y, 'b-')
-pl.title('fitting result of casA spectra (considering ARF)')
-save_name = 'arf_specline_all.png'
-save_path = os.path.join(thisdir, data_to_thisdir_path, save_name)
-pl.savefig(save_path)
-pl.show()
+exec_fitting()
